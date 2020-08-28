@@ -2,6 +2,8 @@ package factory
 
 import (
 	"errors"
+	"sync"
+	"sync/atomic"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -13,7 +15,7 @@ import (
  */
 type DispatchStatus struct {
 	Type   string
-	ID     int
+	ID     int32
 	Status string
 }
 
@@ -21,7 +23,8 @@ type DispatchStatus struct {
 // that will be processed, a worker queue of workers, and a channel for status
 // reports for jobs and workers.
 type Dispatcher struct {
-	jobCounter     int                  // internal counter for number of jobs
+	wg             sync.WaitGroup       // wait group for goroutines
+	jobCounter     int32                // internal counter for number of jobs
 	jobQueue       chan *Job            // channel of submitted jobs
 	dispatchStatus chan *DispatchStatus // channel for job/worker status reports
 	workQueue      chan *Job            // channel of work dispatched
@@ -57,6 +60,7 @@ func (d *Dispatcher) QueueJob(je JobExecutable) error {
 	go func() { d.jobQueue <- j }()
 
 	// Increment the internal job counter:
+	d.wg.Add(1)
 	d.jobCounter++
 	d.log.WithFields(log.Fields{
 		"jobCounter": d.jobCounter,
@@ -82,13 +86,13 @@ func (d *Dispatcher) Running() bool {
 // Start has the dispatcher create workers to handle jobs, then creates a
 // goroutine to handle passing jobs in the queue off to workers and processing
 // dispatch status reports.
-func (d *Dispatcher) Start(numWorkers int) error {
+func (d *Dispatcher) Start(numWorkers int32) error {
 	if numWorkers < 1 {
 		return errors.New("Start requires >= 1 workers.")
 	}
 
 	// Create numWorkers:
-	for i := 0; i < numWorkers; i++ {
+	for i := int32(0); i < numWorkers; i++ {
 		worker := CreateNewWorker(i, d.workerCommand, d.workQueue, d.dispatchStatus, d.log)
 		worker.Start()
 	}
@@ -132,11 +136,14 @@ func (d *Dispatcher) Start(numWorkers int) error {
 						d.log.WithFields(log.Fields{
 							"ID": ds.ID,
 						}).Info("Job finished.")
-						d.jobCounter--
+						atomic.AddInt32(&d.jobCounter, -1)
+						d.wg.Done()
+						//d.jobCounter--
 					}
 				}
 			}
 		}
 	}()
+	d.wg.Wait()
 	return nil
 }

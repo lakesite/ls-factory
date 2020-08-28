@@ -10,13 +10,13 @@ type JobExecutable func() error
 
 // Job has an ID, start time, end time and reference to a JobExecutable.
 type Job struct {
-	ID         int
+	ID         int32
 	StartTime  time.Time
 	EndTime    time.Time
 	Executable JobExecutable
 }
 
-func CreateNewJob(id int, je JobExecutable) *Job {
+func CreateNewJob(id int32, je JobExecutable) *Job {
 	return &Job{
 		ID:         id,
 		Executable: je,

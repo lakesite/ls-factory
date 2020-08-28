@@ -8,7 +8,7 @@ import (
 // Worker has an ID, internal channel for jobs, internal channel for reporting
 // status to the dispatcher, and a channel for quitting.
 type Worker struct {
-	ID             int
+	ID             int32
 	jobs           chan *Job
 	dispatchStatus chan *DispatchStatus
 	workerCmd      chan *WorkerCommand
@@ -16,13 +16,13 @@ type Worker struct {
 }
 
 type WorkerCommand struct {
-	ID      int
+	ID      int32
 	Command string
 }
 
 // CreateNewWorker accepts an ID, channel for worker registration, channel for
 // jobs, and a channel for dispatch reports.
-func CreateNewWorker(id int, wCmd chan *WorkerCommand, jobQueue chan *Job, dStatus chan *DispatchStatus, l *log.Logger) *Worker {
+func CreateNewWorker(id int32, wCmd chan *WorkerCommand, jobQueue chan *Job, dStatus chan *DispatchStatus, l *log.Logger) *Worker {
 	w := &Worker{
 		ID:             id,
 		jobs:           jobQueue,

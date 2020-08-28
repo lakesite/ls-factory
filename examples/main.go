@@ -44,8 +44,8 @@ func main() {
 	dispatcher := factory.CreateNewDispatcher(log)
 
 	// Enqueue n*2 jobs:
-	n := 10
-	for i:= 0; i<n; i++ {
+	n := int32(10)
+	for i:= int32(0); i<n; i++ {
 		dispatcher.QueueJob(process1)
 		dispatcher.QueueJob(process2)
 	}
